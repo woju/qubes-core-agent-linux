@@ -1,7 +1,6 @@
 CC=gcc
-CFLAGS+=-I. -g -Wall -pie -fPIC
-XENLIBS=-lvchan -lxenstore -lxenctrl
-LIBS=$(XENLIBS) -lqrexec-utils
+CFLAGS+=-I. -g -Wall -pie -fPIC `pkg-config --cflags vchan-$(BACKEND_VMM)`
+LIBS=`pkg-config --libs vchan-$(BACKEND_VMM)` -lqrexec-utils
 
 all: qrexec-agent qrexec-client-vm
 qrexec-daemon: qrexec-daemon.o
