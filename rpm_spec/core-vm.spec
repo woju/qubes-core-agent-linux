@@ -510,6 +510,6 @@ if [ "$1" != 0 ] ; then
     exit 0
 fi
 
-for srv in qubes-dvm qubes-meminfo-writer qubes-sysinit qubes-misc-post qubes-netwatcher qubes-network qubes-qrexec-agenT; DO
+for srv in qubes-dvm qubes-meminfo-writer qubes-sysinit qubes-misc-post qubes-netwatcher qubes-network qubes-qrexec-agent; do
     /bin/systemctl disable $srv.service
 do
