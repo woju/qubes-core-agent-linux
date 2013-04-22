@@ -48,6 +48,7 @@ Requires:   net-tools
 Requires:   nautilus-actions
 Requires:   qubes-core-vm-kernel-placeholder
 Requires:   qubes-utils
+Requires:   qubes-libvchan
 Provides:   qubes-core-vm
 Obsoletes:  qubes-core-commonvm
 Obsoletes:  qubes-core-appvm
@@ -56,6 +57,7 @@ Obsoletes:  qubes-core-proxyvm
 Obsoletes:  qubes-upgrade-vm < 2.0
 BuildRequires: xen-devel
 BuildRequires: qubes-utils-devel
+BuildRequires: qubes-libvchan-%{backend_vmm}-devel
 
 %define _builddir %(pwd)
 
