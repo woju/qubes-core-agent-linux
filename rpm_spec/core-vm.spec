@@ -32,7 +32,6 @@ Group:		Qubes
 Vendor:		Invisible Things Lab
 License:	GPL
 URL:		http://www.qubes-os.org
-Requires:	/usr/bin/xenstore-read
 Requires:   fedora-release
 Requires:   yum-plugin-post-transaction-actions
 Requires:   NetworkManager >= 0.8.1-1
@@ -50,6 +49,7 @@ Requires:   nautilus-actions
 Requires:   qubes-core-vm-kernel-placeholder
 Requires:   qubes-utils
 Requires:   qubes-libvchan
+Requires:   qubes-db-vm
 Provides:   qubes-core-vm
 Obsoletes:  qubes-core-commonvm
 Obsoletes:  qubes-core-appvm
