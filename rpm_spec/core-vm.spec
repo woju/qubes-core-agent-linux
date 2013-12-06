@@ -107,7 +107,8 @@ install -m 0644 vm-systemd/cups.service $RPM_BUILD_ROOT/usr/lib/qubes/init/
 install -m 0644 vm-systemd/ntpd.service $RPM_BUILD_ROOT/usr/lib/qubes/init/
 
 install -D -m 0440 misc/qubes.sudoers $RPM_BUILD_ROOT/etc/sudoers.d/qubes
-install -D -m 0644 misc/qubes.repo $RPM_BUILD_ROOT/etc/yum.repos.d/qubes.repo
+install -D -m 0644 misc/qubes-r2-beta2.repo $RPM_BUILD_ROOT/etc/yum.repos.d/qubes-r2-beta2.repo
+install -D -m 0644 misc/qubes-r2-beta3.repo $RPM_BUILD_ROOT/etc/yum.repos.d/qubes-r2-beta3.repo
 install -D -m 0644 misc/serial.conf $RPM_BUILD_ROOT/usr/lib/qubes/serial.conf
 install -D misc/qubes_serial_login $RPM_BUILD_ROOT/sbin/qubes_serial_login
 install -d $RPM_BUILD_ROOT/usr/share/glib-2.0/schemas/
@@ -415,7 +416,8 @@ rm -f %{name}-%{version}
 /etc/xdg/nautilus-actions/nautilus-actions.conf
 /etc/xen/scripts/vif-route-qubes
 %config(noreplace) /etc/yum.conf.d/qubes-proxy.conf
-%config(noreplace) /etc/yum.repos.d/qubes.repo
+%config(noreplace) /etc/yum.repos.d/qubes-r2-beta2.repo
+%config(noreplace) /etc/yum.repos.d/qubes-r2-beta3.repo
 /etc/yum/pluginconf.d/yum-qubes-hooks.conf
 /etc/yum/post-actions/qubes_trigger_sync_appmenus.action
 /sbin/qubes_serial_login
