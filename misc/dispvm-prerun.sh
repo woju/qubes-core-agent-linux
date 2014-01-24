@@ -27,6 +27,12 @@ done
 
 ps ax > /tmp/dispvm-prerun-proclist.log
 
+for app in $apps; do
+    killall $app
+done
+killall soffice.bin
+fuser -vkm /rw
+
 if [ -e /rw/home/user/.qubes-dispvm-customized ]; then
 	cp -af /rw/home/user /home/
 else
