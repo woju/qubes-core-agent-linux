@@ -32,7 +32,7 @@ else:
 
 cmd = "/usr/lib/qubes/vusb-ctl.py unbind '%s'" % backendvm_device
 if backendvm_xid == 0:
-    os.system("sudo %s" % cmd)
+    os.system("/usr/bin/sudo %s" % cmd)
 else:
     from qubes.qubes import QubesVmCollection
     qvm_collection = QubesVmCollection()
@@ -44,6 +44,6 @@ else:
     qvm_collection.get_vm_by_name(backendvm_name).run(cmd, user="root")
 
 # FIXME: command injection
-os.system("xenstore-write /local/domain/%s/backend/vusb/%s/%s/port/%s ''"
+os.system("/usr/bin/xenstore-write /local/domain/%s/backend/vusb/%s/%s/port/%s ''"
 	% (backendvm_xid, frontendvm_xid, controller, port))
 
