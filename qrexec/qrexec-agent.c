@@ -20,6 +20,7 @@
  */
 
 #include <sys/select.h>
+#include <sys/socket.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -176,9 +177,11 @@ void create_info_about_client(int client_id, int pid, int stdin_fd,
 	process_fd[stdout_fd].client_id = client_id;
 	process_fd[stdout_fd].type = FDTYPE_STDOUT;
 	process_fd[stdout_fd].is_blocked = 0;
-	process_fd[stderr_fd].client_id = client_id;
-	process_fd[stderr_fd].type = FDTYPE_STDERR;
-	process_fd[stderr_fd].is_blocked = 0;
+	if (stderr_fd > -1) {
+		process_fd[stderr_fd].client_id = client_id;
+		process_fd[stderr_fd].type = FDTYPE_STDERR;
+		process_fd[stderr_fd].is_blocked = 0;
+	}
 
 	if (stderr_fd > max_process_fd)
 		max_process_fd = stderr_fd;
@@ -201,13 +204,13 @@ void create_info_about_client(int client_id, int pid, int stdin_fd,
 void handle_exec(int client_id, int len)
 {
 	char buf[len];
-	int pid, stdin_fd, stdout_fd, stderr_fd;
+	int pid, stdin_fd, stderr_fd;
 
 	read_all_vchan_ext(buf, len);
 
-	do_fork_exec(buf, &pid, &stdin_fd, &stdout_fd, &stderr_fd);
+	do_fork_exec(buf, &pid, &stdin_fd, NULL, &stderr_fd);
 
-	create_info_about_client(client_id, pid, stdin_fd, stdout_fd,
+	create_info_about_client(client_id, pid, stdin_fd, stdin_fd,
 				 stderr_fd);
 
 	fprintf(stderr, "executed %s pid %d\n", buf, pid);
@@ -217,11 +220,16 @@ void handle_exec(int client_id, int len)
 void handle_connect_existing(int client_id, int len)
 {
 	int stdin_fd, stdout_fd, stderr_fd;
+	int fd_count;
 	char buf[len];
 	read_all_vchan_ext(buf, len);
-	sscanf(buf, "%d %d %d", &stdin_fd, &stdout_fd, &stderr_fd);
-	create_info_about_client(client_id, -1, stdin_fd, stdout_fd,
-				 stderr_fd);
+	fd_count = sscanf(buf, "%d %d %d", &stdin_fd, &stdout_fd, &stderr_fd);
+	if (fd_count == 3) {
+		create_info_about_client(client_id, -1, stdin_fd, stdout_fd,
+				stderr_fd);
+	} else if (fd_count == 1) {
+		create_info_about_client(client_id, -1, stdin_fd, stdin_fd, -1);
+	}
 	client_info[client_id].is_exited = 1;	//do not wait for SIGCHLD
 }
 
@@ -305,7 +313,10 @@ void handle_input(int client_id, int len)
 			client_info[client_id].is_close_after_flush_needed
 			    = 1;
 		else {
-			close(client_info[client_id].stdin_fd);
+			if (client_info[client_id].stdin_fd == client_info[client_id].stdout_fd)
+				shutdown(client_info[client_id].stdin_fd, SHUT_WR);
+			else
+				close(client_info[client_id].stdin_fd);
 			client_info[client_id].stdin_fd = -1;
 		}
 		return;
@@ -321,7 +332,10 @@ void handle_input(int client_id, int len)
 		break;
 	case WRITE_STDIN_ERROR:
 		// do not remove process, as it still can write data to stdout
-		close(client_info[client_id].stdin_fd);
+		if (client_info[client_id].stdin_fd == client_info[client_id].stdout_fd)
+			shutdown(client_info[client_id].stdin_fd, SHUT_WR);
+		else
+			close(client_info[client_id].stdin_fd);
 		client_info[client_id].stdin_fd = -1;
 		client_info[client_id].is_blocked = 0;
 		break;
@@ -335,7 +349,8 @@ void handle_input(int client_id, int len)
 void set_blocked_outerr(int client_id, int val)
 {
 	process_fd[client_info[client_id].stdout_fd].is_blocked = val;
-	process_fd[client_info[client_id].stderr_fd].is_blocked = val;
+	if (client_info[client_id].stderr_fd > -1)
+		process_fd[client_info[client_id].stderr_fd].is_blocked = val;
 }
 
 void handle_server_data()
@@ -405,6 +420,10 @@ void handle_process_data(int fd)
 		write_all_vchan_ext(&s_hdr, sizeof s_hdr);
 		write_all_vchan_ext(buf, ret);
 	}
+	if (ret == -1 && errno == ECONNRESET) {
+		/* Treat "Connection reset by peer" as EOF */
+		ret = 0;
+	}
 	if (ret == 0) {
 		int client_id = process_fd[fd].client_id;
 		if (process_fd[fd].type == FDTYPE_STDOUT)
@@ -415,7 +434,11 @@ void handle_process_data(int fd)
 		process_fd[fd].type = FDTYPE_INVALID;
 		process_fd[fd].client_id = -1;
 		process_fd[fd].is_blocked = 0;
-		close(fd);
+		// it can be the same socket for both stdin and stdout
+		if (client_info[client_id].stdin_fd == fd)
+			shutdown(fd, SHUT_RD);
+		else
+			close(fd);
 		update_max_process_fd();
 		possibly_remove_process(client_id);
 	}
@@ -505,7 +528,10 @@ void flush_client_data_agent(int client_id)
 	case WRITE_STDIN_OK:
 		info->is_blocked = 0;
 		if (info->is_close_after_flush_needed) {
-			close(info->stdin_fd);
+			if (info->stdin_fd == info->stdout_fd)
+				shutdown(info->stdin_fd, SHUT_WR);
+			else
+				close(info->stdin_fd);
 			info->stdin_fd = -1;
 			info->is_close_after_flush_needed = 0;
 		}
@@ -513,7 +539,10 @@ void flush_client_data_agent(int client_id)
 	case WRITE_STDIN_ERROR:
 		// do not remove process, as it still can write data to stdout
 		info->is_blocked = 0;
-		close(info->stdin_fd);
+		if (info->stdin_fd == info->stdout_fd)
+			shutdown(info->stdin_fd, SHUT_WR);
+		else
+			close(info->stdin_fd);
 		info->stdin_fd = -1;
 		info->is_close_after_flush_needed = 0;
 		break;

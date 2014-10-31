@@ -78,21 +78,39 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	for (i = 0; i < 3; i++) {
-		local_fd[i] = connect_unix_socket();
-		if (read(local_fd[i], &remote_fd[i], sizeof(remote_fd[i])) != sizeof(remote_fd[i])) {
+	if (!getenv("QREXEC_USE_PIPES")) {
+		local_fd[0] = connect_unix_socket();
+		if (read(local_fd[0], &remote_fd[0], sizeof(remote_fd[0])) != sizeof(remote_fd[0])) {
 			perror("read client fd");
 			exit(1);
 		}
-		if (i != 2 || getenv("PASS_LOCAL_STDERR")) {
+		for (i=0; i < 2; i++) {
 			char *env;
 			if (asprintf(&env, "SAVED_FD_%d=%d", i, dup(i)) < 0) {
 				perror("prepare SAVED_FD_");
 				exit(1);
 			}
 			putenv(env);
-			dup2(local_fd[i], i);
-			close(local_fd[i]);
+			dup2(local_fd[0], i);
+		}
+		close(local_fd[0]);
+	} else {
+		for (i = 0; i < 3; i++) {
+			local_fd[i] = connect_unix_socket();
+			if (read(local_fd[i], &remote_fd[i], sizeof(remote_fd[i])) != sizeof(remote_fd[i])) {
+				perror("read client fd");
+				exit(1);
+			}
+			if (i != 2 || getenv("PASS_LOCAL_STDERR")) {
+				char *env;
+				if (asprintf(&env, "SAVED_FD_%d=%d", i, dup(i)) < 0) {
+					perror("prepare SAVED_FD_");
+					exit(1);
+				}
+				putenv(env);
+				dup2(local_fd[i], i);
+				close(local_fd[i]);
+			}
 		}
 	}
 
@@ -100,9 +118,15 @@ int main(int argc, char **argv)
 	strncpy(params.exec_index, argv[2], sizeof(params.exec_index));
 	strncpy(params.target_vmname, argv[1],
 		sizeof(params.target_vmname));
-	snprintf(params.process_fds.ident,
-		 sizeof(params.process_fds.ident), "%d %d %d",
-		 remote_fd[0], remote_fd[1], remote_fd[2]);
+	if (!getenv("QREXEC_USE_PIPES")) {
+		snprintf(params.process_fds.ident,
+				sizeof(params.process_fds.ident), "%d",
+				remote_fd[0]);
+	} else {
+		snprintf(params.process_fds.ident,
+				sizeof(params.process_fds.ident), "%d %d %d",
+				remote_fd[0], remote_fd[1], remote_fd[2]);
+	}
 
 	if (write(trigger_fd, &params, sizeof(params)) < 0) {
 		if (!getenv("PASS_LOCAL_STDERR"))
