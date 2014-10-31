@@ -16,7 +16,7 @@ void notify_progress(int size, int flag)
 		// exit() will be called, so don't bother with current state
 		// (notify_progress can be called as callback from copy_file())
 		if (flag == PROGRESS_FLAG_NORMAL)
-			wait_for_result();
+			wait_for_result(0);
 		do_notify_progress(total, flag);
 		prev_total = total;
 	}
@@ -59,8 +59,7 @@ void notify_end_and_wait_for_result(void)
 	end_hdr.filelen = 0;
 	write_all_with_crc(1, &end_hdr, sizeof(end_hdr));
 
-	set_block(0);
-	wait_for_result();
+	wait_for_result(1);
 }
 
 int write_all_with_crc(int fd, const void *buf, int size)
@@ -69,12 +68,23 @@ int write_all_with_crc(int fd, const void *buf, int size)
 	return write_all(fd, buf, size);
 }
 
-void wait_for_result(void)
+void wait_for_result(int block)
 {
 	struct result_header hdr;
 	struct result_header_ext hdr_ext;
 	char last_filename[MAX_PATH_LENGTH + 1];
 	char last_filename_prefix[] = "; Last file: ";
+
+	if (!block) {
+		fd_set fds;
+		struct timeval timeout = { 0, 0 };
+		/* check if anything to read */
+		FD_ZERO(&fds);
+		FD_SET(0, &fds);
+		if (select(1, &fds, NULL, NULL, &timeout) == 0)
+			/* nothing to read, continue transfer */
+			return;
+	}
 
 	if (!read_all(0, &hdr, sizeof(hdr))) {
 		if (errno == EAGAIN) {
@@ -132,8 +142,7 @@ void write_headers(const struct file_header *hdr, const char *filename)
 {
 	if (!write_all_with_crc(1, hdr, sizeof(*hdr))
 	    || !write_all_with_crc(1, filename, hdr->namelen)) {
-		set_block(0);
-		wait_for_result();
+		wait_for_result(1);
 		exit(1);
 	}
 }
@@ -164,8 +173,7 @@ int single_file_processor(const char *filename, const struct stat *st)
 				gui_fatal("Copying file %s: %s", filename,
 					  copy_file_status_to_str(ret));
 			else {
-				set_block(0);
-				wait_for_result();
+				wait_for_result(1);
 				exit(1);
 			}
 		}
@@ -182,13 +190,12 @@ int single_file_processor(const char *filename, const struct stat *st)
 		hdr.filelen = st->st_size;
 		write_headers(&hdr, filename);
 		if (!write_all_with_crc(1, name, st->st_size)) {
-			set_block(0);
-			wait_for_result();
+			wait_for_result(1);
 			exit(1);
 		}
 	}
 	// check for possible error from qfile-unpacker
-	wait_for_result();
+	wait_for_result(0);
 	return 0;
 }
 

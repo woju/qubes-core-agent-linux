@@ -811,8 +811,7 @@ ustar_rd (int fd, struct file_header * untrusted_hdr, char *buf, struct stat * s
 				  copy_file_status_to_str(ret));
 		else {
 			fprintf(stderr,"UNKNOWN ERROR RETURN STATUS:%d\n.. Waiting...\n",ret);
-			set_block(0);
-			wait_for_result();
+			wait_for_result(1);
 			exit(1);
 		}
 	}
@@ -822,7 +821,7 @@ ustar_rd (int fd, struct file_header * untrusted_hdr, char *buf, struct stat * s
 #endif
 	if (untrusted_hdr->filelen%BLKMULT > 0) {
 		if (!read_all(fd, buf, BLKMULT-(untrusted_hdr->filelen%BLKMULT))) {
-			wait_for_result();
+			wait_for_result(1);
 			exit(1);
 		}
 	}
@@ -972,7 +971,6 @@ int main(int argc, char **argv)
 	 * EDQUOT just after getting qubes.xml */
 	ignore_quota_error = 1;
 	for (i = 1; i < argc; i++) {
-		set_nonblock(0);
 		if (strcmp(argv[i], "--ignore-symlinks")==0) {
 			ignore_symlinks = 1;
 			continue;
@@ -1010,7 +1008,6 @@ int main(int argc, char **argv)
 #ifdef DEBUG
 		fprintf(stderr,"Using STDIN\n");
 #endif
-		set_block(0);
 		fd = 0;
 	}
 	if (fd < 0) {

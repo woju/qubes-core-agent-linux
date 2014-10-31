@@ -35,6 +35,6 @@ int write_all_with_crc(int fd, const void *buf, int size);
 
 int single_file_processor(const char *filename, const struct stat *st);
 
-void wait_for_result(void);
+void wait_for_result(int block);
 
 #endif /* _LIBQUBES_QFILE_UTILS_H */
