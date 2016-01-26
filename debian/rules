@@ -1,24 +1,105 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
 
-# Uncomment this to turn on verbose mode.
-#export DH_VERBOSE=1
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+# export DH_VERBOSE=1
 
-include /usr/share/dpkg/default.mk
-export DESTDIR=$(shell pwd)/debian/qubes-core-agent
+# ==============================================================================
+# Setup
+# ==============================================================================
+.PHONY: setup
+setup:: patch get-orig-source
+	@$(call debug,target=$@ newer=[$?] stem=$* member=$%)
 
+# Uncomment to use CDBS build scripts
+CDBS_BUILD = 1
+
+ifdef CDBS_BUILD
+  # For cdbs build only
+
+  # Displace Variables must be set before including config-package.mk
+  DEB_DISPLACE_EXTENSION = .qubes
+  DEB_DISPLACE_FILES_qubes-core-agent = /etc/pam.d/su.qubes
+
+  include /usr/share/cdbs/1/rules/debhelper.mk
+  include /usr/share/cdbs/1/rules/config-package.mk
+else
+  # For debhelper build only
+  include /usr/share/dpkg/default.mk
+endif
+
+# (Build-Depends += qubes-builder)
+include /usr/share/qubes-builder/default.mk
+include /usr/share/qubes-builder/debug.mk
+include /usr/share/qubes-builder/depends.mk
+
+# Already set
+#export DESTDIR    = $(debdir)/$(DEB_SOURCE)
+
+# ==============================================================================
+# CDBS build
+# (Build-Depends += cdbs)
+# ==============================================================================
+ifdef DEB_SOURCE_PACKAGE
+
+### debian/control depends substitutions
+ifneq (,$(DEPENDS))
+DEB_DH_GENCONTROL_ARGS_ALL += -- -T$(firstword $(DEPENDS))
+endif
+
+### dh_fixperms extra arguments
+DEB_DH_FIXPERMS_ARGS = -Xqfile-unpacker
+
+### Target overrides
+build/qubes-core-agent::
+	@$(call debug,target=$@ newer=[$?] stem=$* member=$%)
+	@make all
+
+install/qubes-core-agent::
+	@$(call debug,target=$@ newer=[$?] stem=$* member=$%)
+	@make install-deb
+	@make -C qrexec install
+
+
+# XXX: Not yet implemented -- Might not be needed
+#override_dh_systemd_start:
+#	@$(call debug,target=$@ newer=[$?] stem=$* member=$%)
+#	@dh_systemd_start --no-restart-on-upgrade
+
+else
+
+# ==============================================================================
+# DPKG debhelper build
+# (Build-Depends += debhelper)
+# ==============================================================================
 %:
-	dh $@ --with systemd --with=config-package
+	@$(call debug,target=$@ newer=[$?] stem=$* member=$%)
+	@dh $@ --with systemd --with=config-package
 
 override_dh_auto_build:
-	make all
+	@$(call debug,target=$@ newer=[$?] stem=$* member=$%)
+	@make all
 
 override_dh_auto_install:
-	make install-deb
-	make -C qrexec install
+	@$(call debug,target=$@ newer=[$?] stem=$* member=$%)
+	@make install-deb
+	@make -C qrexec install
 
 override_dh_fixperms:
-	dh_fixperms -a -Xqfile-unpacker
+	@$(call debug,target=$@ newer=[$?] stem=$* member=$%)
+	@dh_fixperms -a -Xqfile-unpacker
+
+ifneq (,$(DEPENDS))
+override_dh_gencontrol: $(DEPENDS)
+	@$(call debug,target=$@ newer=[$?] stem=$* member=$%)
+	dh_gencontrol -- -T$<
+endif
 
 override_dh_systemd_start:
-	dh_systemd_start --no-restart-on-upgrade
+	@$(call debug,target=$@ newer=[$?] stem=$* member=$%)
+	@dh_systemd_start --no-restart-on-upgrade
+endif
+
+
+# vim: filetype=make
