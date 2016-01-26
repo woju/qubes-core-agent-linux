@@ -1,0 +1,82 @@
+Source: qubes-core-agent
+Section: admin
+Priority: extra
+Maintainer: Davíð Steinn Geirsson <david@dsg.is>
+Build-Depends: @cdbs@,
+ dh-buildinfo,
+ cdbs,
+ config-package-dev,
+ debhelper (>= 9),
+ dh-systemd (>= 1.5),
+ dpkg (>= 1.17),
+ libqrexec-utils-dev,
+ libqubes-rpc-filecopy-dev (>= 3.1.3),
+ libvchan-xen-dev,
+ libxen-dev,
+ lsb-release,
+ python,
+ quilt,
+ xserver-xorg-dev,
+Standards-Version: 3.9.6
+Homepage: http://www.qubes-os.org
+Vcs-Git: git://github.com/QubesOS/qubes-core-agent-linux
+Vcs-Browser: https://github.com/QubesOS/qubes-core-agent-linux.git
+
+Package: qubes-core-agent
+Architecture: any
+Depends: ${cdbs:Depends},
+ dmsetup,
+ ethtool,
+ fakeroot,
+ gawk,
+ imagemagick,
+ init-system-helpers,
+ initscripts,
+ iptables,
+ librsvg2-bin,
+ libvchan-xen,
+ locales,
+ ncurses-term,
+ net-tools,
+ psmisc,
+ python2.7,
+ python-gi,
+ python-xdg,
+ python-dbus,
+ python-gtk2,
+ qubes-utils (>= 3.1.3),
+ sudo,
+ systemd,
+ x11-xserver-utils,
+ xdg-user-dirs,
+ xen-utils-common,
+ xenstore-utils,
+ xinit,
+ xserver-xorg-core,
+ xserver-xorg-video-dummy,
+# locales-all moved to qubes-core-agent.depends.debian since the package is not availabe for qubuntu build
+ ${qubes-core-agent:Depends},
+ ${shlibs:Depends},
+ ${misc:Depends},
+Recommends:
+ cups,
+ gnome-packagekit,
+ gnome-terminal,
+ gnome-themes-standard,
+ haveged,
+ libnotify-bin,
+ mate-notification-daemon,
+ network-manager (>= 0.8.1-1),
+ network-manager-gnome,
+ ntpdate,
+ python-nautilus,
+ system-config-printer,
+ tinyproxy,
+ xsettingsd,
+ yum,
+ yum-utils,
+Provides: ${diverted-files}
+Conflicts: ${diverted-files}, qubes-core-agent-linux, firewalld, qubes-core-vm-sysvinit
+Description: Qubes core agent
+ This package includes various daemons necessary for qubes domU support,
+ such as qrexec.
