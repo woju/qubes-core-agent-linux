@@ -1,24 +1,42 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
 
-# Uncomment this to turn on verbose mode.
-#export DH_VERBOSE=1
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+export DH_VERBOSE=1
 
-include /usr/share/dpkg/default.mk
-export DESTDIR=$(shell pwd)/debian/qubes-core-agent
+# (Build-Depends += debhelper qubes-builder config-package-dev)
+include /usr/share/qubes-builder/default.mk
 
 %:
-	dh $@ --with systemd --with=config-package
+	@$(call debug,$@ $(blue)[$?] stem=$* member=$%)
+	@dh $@ --with systemd --with=config-package
+
+setup:: prepare-patches get-orig-source
+	@$(call debug,$@ $(blue)[$?] stem=$* member=$%)
 
 override_dh_auto_build:
-	make all
+	@$(call debug,$@ $(blue)[$?] stem=$* member=$%)
+	@make all
 
 override_dh_auto_install:
-	make install-deb
-	make -C qrexec install
+	@$(call debug,$@ $(blue)[$?] stem=$* member=$%)
+	@make install-deb
+	@make -C qrexec install
 
 override_dh_fixperms:
-	dh_fixperms -a -Xqfile-unpacker
+	@$(call debug,$@ $(blue)[$?] stem=$* member=$%)
+	@dh_fixperms -a -Xqfile-unpacker
+
+ifneq (,$(DEPENDS))
+override_dh_gencontrol: $(DEPENDS)
+	@$(call debug,$@ $(blue)[$?] stem=$* member=$%)
+	dh_gencontrol -- -T$<
+endif
 
 override_dh_systemd_start:
-	dh_systemd_start --no-restart-on-upgrade
+	@$(call debug,$@ $(blue)[$?] stem=$* member=$%)
+	@dh_systemd_start --no-restart-on-upgrade
+
+.PHONY: setup
+# vim: filetype=make
