@@ -3,45 +3,26 @@
 
 # See debhelper(7) (uncomment to enable)
 # output every command that modifies files on the build system.
-# export DH_VERBOSE=1
-
-# ==============================================================================
-# Setup
-# ==============================================================================
-.PHONY: setup
-setup:: patch get-orig-source
-	@$(call debug,target=$@ newer=[$?] stem=$* member=$%)
+export DH_VERBOSE=1
 
 # Uncomment to use CDBS build scripts
 CDBS_BUILD = 1
-
-ifdef CDBS_BUILD
-  # For cdbs build only
-
-  # Displace Variables must be set before including config-package.mk
-  DEB_DISPLACE_EXTENSION = .qubes
-  DEB_DISPLACE_FILES_qubes-core-agent = /etc/pam.d/su.qubes
-
-  include /usr/share/cdbs/1/rules/debhelper.mk
-  include /usr/share/cdbs/1/rules/config-package.mk
-else
-  # For debhelper build only
-  include /usr/share/dpkg/default.mk
-endif
-
-# (Build-Depends += qubes-builder)
-include /usr/share/qubes-builder/default.mk
-include /usr/share/qubes-builder/debug.mk
-include /usr/share/qubes-builder/depends.mk
-
-# Already set
-#export DESTDIR    = $(debdir)/$(DEB_SOURCE)
 
 # ==============================================================================
 # CDBS build
 # (Build-Depends += cdbs)
 # ==============================================================================
-ifdef DEB_SOURCE_PACKAGE
+ifdef CDBS_BUILD
+
+# Displace Variables must be set before including config-package.mk
+DEB_DISPLACE_EXTENSION = .qubes
+DEB_DISPLACE_FILES_qubes-core-agent = /etc/pam.d/su.qubes
+
+# (Build-Depends += cdbs debhelper qubes-builder config-package-dev)
+include /usr/share/cdbs/1/rules/debhelper.mk
+include /usr/share/cdbs/1/rules/config-package.mk
+include /usr/share/qubes-builder/default.mk
+#include /usr/share/qubes-builder/depends.mk
 
 ### debian/control depends substitutions
 ifneq (,$(DEPENDS))
@@ -52,54 +33,65 @@ endif
 DEB_DH_FIXPERMS_ARGS = -Xqfile-unpacker
 
 ### Target overrides
+setup:: patch get-orig-source
+	@$(call debug,$@ $(blue)[$?] stem=$* member=$%)
+
 build/qubes-core-agent::
-	@$(call debug,target=$@ newer=[$?] stem=$* member=$%)
+	@$(call debug,$@ $(blue)[$?] stem=$* member=$%)
 	@make all
 
 install/qubes-core-agent::
-	@$(call debug,target=$@ newer=[$?] stem=$* member=$%)
+	@$(call debug,$@ $(blue)[$?] stem=$* member=$%)
 	@make install-deb
 	@make -C qrexec install
 
-
 # XXX: Not yet implemented -- Might not be needed
 #override_dh_systemd_start:
-#	@$(call debug,target=$@ newer=[$?] stem=$* member=$%)
+#	@$(call debug,$@ $(blue)[$?] stem=$* member=$%)
 #	@dh_systemd_start --no-restart-on-upgrade
 
-else
 
 # ==============================================================================
 # DPKG debhelper build
 # (Build-Depends += debhelper)
 # ==============================================================================
+else
+
+# (Build-Depends += debhelper qubes-builder config-package-dev)
+#include /usr/share/dpkg/default.mk
+include /usr/share/qubes-builder/default.mk
+#include /usr/share/qubes-builder/depends.mk
+
 %:
-	@$(call debug,target=$@ newer=[$?] stem=$* member=$%)
+	@$(call debug,$@ $(blue)[$?] stem=$* member=$%)
 	@dh $@ --with systemd --with=config-package
 
+setup:: patch get-orig-source
+	@$(call debug,$@ $(blue)[$?] stem=$* member=$%)
+
 override_dh_auto_build:
-	@$(call debug,target=$@ newer=[$?] stem=$* member=$%)
+	@$(call debug,$@ $(blue)[$?] stem=$* member=$%)
 	@make all
 
 override_dh_auto_install:
-	@$(call debug,target=$@ newer=[$?] stem=$* member=$%)
+	@$(call debug,$@ $(blue)[$?] stem=$* member=$%)
 	@make install-deb
 	@make -C qrexec install
 
 override_dh_fixperms:
-	@$(call debug,target=$@ newer=[$?] stem=$* member=$%)
+	@$(call debug,$@ $(blue)[$?] stem=$* member=$%)
 	@dh_fixperms -a -Xqfile-unpacker
 
 ifneq (,$(DEPENDS))
 override_dh_gencontrol: $(DEPENDS)
-	@$(call debug,target=$@ newer=[$?] stem=$* member=$%)
+	@$(call debug,$@ $(blue)[$?] stem=$* member=$%)
 	dh_gencontrol -- -T$<
 endif
 
 override_dh_systemd_start:
-	@$(call debug,target=$@ newer=[$?] stem=$* member=$%)
+	@$(call debug,$@ $(blue)[$?] stem=$* member=$%)
 	@dh_systemd_start --no-restart-on-upgrade
 endif
 
-
+.PHONY: setup
 # vim: filetype=make
