@@ -28,6 +28,10 @@ override_dh_fixperms:
 	@$(call debug,$@ $(blue)[$?] stem=$* member=$%)
 	@dh_fixperms -a -Xqfile-unpacker
 
+# Inject custom depends to debian/control from distribution or vendor specific
+# depends configuration file
+#
+# See 'depends.mk' in '/usr/share/builder-debian/snippets' directory.
 ifneq (,$(DEPENDS))
 override_dh_gencontrol: $(DEPENDS)
 	@$(call debug,$@ $(blue)[$?] stem=$* member=$%)
