@@ -213,6 +213,7 @@ install-common:
 
 	install -d $(DESTDIR)/usr/bin
 	install -m 0755 misc/qubes-session-autostart $(DESTDIR)/usr/bin/qubes-session-autostart
+	install -m 0755 misc/qvm-feature-request $(DESTDIR)/usr/bin/qvm-feature-request
 
 	install qubes-rpc/{qvm-open-in-dvm,qvm-open-in-vm,qvm-copy-to-vm,qvm-run,qvm-mru-entry} $(DESTDIR)/usr/bin
 	ln -s qvm-copy-to-vm $(DESTDIR)/usr/bin/qvm-move-to-vm
